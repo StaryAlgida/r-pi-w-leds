@@ -16,7 +16,7 @@ from machine import Pin
 
 import rp2
 import array, time
-from leds_modes import rainbow_cycle, wheel, color_chase, pixels_set, pixels_fill
+from leds_modes import rainbow_cycle, wheel, color_chase, pixels_set, pixels_fill, pixels_show
 #Leds definitions
 NUM_LEDS = 30
 PIN_NUM = 0
@@ -131,13 +131,17 @@ def get_params(request):
         if '=' in param:
             key, value = param.split('=')
             if(value.find(' ')>=0):
-                parameters.append(value[1:value.find(' ')])
+                parameters.append(value[0:value.find(' ')])
             else:
                 parameters.append(value)
     if len(parameters) == 0 :
-        return ['-1','-1']
+        return ['-1','-1','-1']
     return parameters
-    
+
+def change_to_rgb(hex_color):
+    clear = hex_color[3:]
+    rgb_color = tuple(int(clear[i:i+2], 16) for i in (0, 2, 4))
+    return rgb_color
 
 async def serve_client(reader, writer):
     print("Client connected")
@@ -149,37 +153,25 @@ async def serve_client(reader, writer):
     
     # find() valid garage-door commands within the request
     request = request_line.decode()
-    mode, color = get_params(request)
+    mode, color, brightness = get_params(request)
 
     print('mode:',mode)
     print('color:',color)
+    print('brightness:',brightness)
     
-    #if(mode != -1 && color != -1):
+    rgb_color = change_to_rgb(color)
         
-        
-    #cmd_down = request.find('COLORS=')
-    #cmd_stop = request.find('DOOR=STOP')
-    #print ('DOOR=UP => ' + str(cmd_up)) # show where the commands were found (-1 means not found)
-    #print ('DOOR=DOWN => ' + str(cmd_down))
-    #print ('DOOR=STOP => ' + str(cmd_stop))
-
-    stateis = "" # Keeps track of the last command issued
-    
-    # Carry out a command if it is found (found at index: 8)
-    #if cmd_stop == 8:
-        #stateis = "Door: STOP"
-        #print(stateis)
-        #control_door('stop')
-        
-    #elif cmd_up == 8:
-        #stateis = "Door: UP"
-        #print(stateis)
-        #control_door('up')
-        
-    #elif cmd_down == 8:
-        #stateis = "Door: DOWN"
-        #print(stateis)
-        #control_door('down')
+    if mode == "default":
+        pixels_fill(rgb_color, ar)
+        pixels_show(ar, brightness, NUM_LEDS, sm)
+    if mode == "wave":
+        print("wave")
+        while(True): # add thread
+            color_chase(ar, rgb_color, brightness, 0.01, NUM_LEDS, sm)
+            if mode != "wave":
+                break
+    if mode == "rgb":
+        print("rgb")
     
     #response = html % stateis
     writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
@@ -204,5 +196,4 @@ try:
     asyncio.run(main())
 finally:
     asyncio.new_event_loop()
-
 

@@ -30,12 +30,25 @@
           <option value="default">Domyslny</option>
           <option value="wave">Fala</option>
           <option value="rgb">RGB</option>
-          <option value="static">Statyczny</option>
         </select>
       </div>
       <div>
         <label for="mode">Kolor</label>
         <input type="color" id="ledColors" name="COLORS" />
+      </div>
+      <div>
+        <label for="brightness">Jasność</label>
+        <input
+          type="number"
+          name="BRIGHTNESS"
+          id="brightness"
+          value="0.5"
+          inputmode="decimal"
+          step=".01"
+          placeholder="0.5"
+          min="0"
+          max="1"
+        />
       </div>
       <button
         style="
