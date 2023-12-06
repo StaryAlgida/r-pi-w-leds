@@ -14,6 +14,9 @@ import network
 import uasyncio as asyncio
 from machine import Pin
 
+import _thread
+import globals
+
 import rp2
 import array, time
 from leds_modes import rainbow_cycle, wheel, color_chase, pixels_set, pixels_fill, pixels_show
@@ -21,6 +24,8 @@ from leds_modes import rainbow_cycle, wheel, color_chase, pixels_set, pixels_fil
 NUM_LEDS = 30
 PIN_NUM = 0
 brightness = 0.5
+
+
 
 @rp2.asm_pio(sideset_init=rp2.PIO.OUT_LOW, out_shiftdir=rp2.PIO.SHIFT_LEFT, autopull=True, pull_thresh=24)
 def ws2812():
@@ -44,16 +49,6 @@ sm.active(1)
 
 # Display a pattern on the LEDs via an array of LED RGB values.
 ar = array.array("I", [0 for _ in range(NUM_LEDS)])
-
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-YELLOW = (255, 150, 0)
-GREEN = (0, 255, 0)
-CYAN = (0, 255, 255)
-BLUE = (0, 0, 255)
-PURPLE = (180, 0, 255)
-WHITE = (255, 255, 255)
-COLORS = (BLACK, RED, YELLOW, GREEN, CYAN, BLUE, PURPLE, WHITE)
 
 #################################
 
@@ -82,22 +77,6 @@ def blink_led(frequency = 0.5, num_blinks = 3):
         time.sleep(frequency)
         led.off()
         time.sleep(frequency)
-
-def control_door(cmd):
-    if cmd == 'stop':
-        pin_stop.on()
-        blink_led(0.1, 1)
-        pin_stop.off()
-        
-    if cmd == 'up':
-        pin_up.on()
-        blink_led(0.1, 1)
-        pin_up.off()
-    
-    if cmd == 'down':
-        pin_down.on()
-        blink_led(0.1, 1)
-        pin_down.off()
         
         
 async def connect_to_wifi():
@@ -143,6 +122,21 @@ def change_to_rgb(hex_color):
     rgb_color = tuple(int(clear[i:i+2], 16) for i in (0, 2, 4))
     return rgb_color
 
+def set_mode(mode, rgb_color, brightness):
+    try:
+        if mode == "default":
+            pixels_fill(rgb_color, ar)
+            pixels_show(ar, brightness, NUM_LEDS, sm)
+        if mode == "wave":
+            globals.set_run_true()
+            wave_thread = _thread.start_new_thread(color_chase,(ar, rgb_color, brightness, 0.03, NUM_LEDS, sm))  
+        if mode == "rgb":
+            globals.set_run_true()
+            rgb_thread = _thread.start_new_thread(rainbow_cycle,(0, NUM_LEDS, ar, brightness, sm))
+            print("rgb")
+    except OSError:
+        print("error")
+
 async def serve_client(reader, writer):
     print("Client connected")
     request_line = await reader.readline()
@@ -159,19 +153,14 @@ async def serve_client(reader, writer):
     print('color:',color)
     print('brightness:',brightness)
     
-    rgb_color = change_to_rgb(color)
+    
+    if mode!='-1' and color!='-1' and brightness!='-1':
         
-    if mode == "default":
-        pixels_fill(rgb_color, ar)
-        pixels_show(ar, brightness, NUM_LEDS, sm)
-    if mode == "wave":
-        print("wave")
-        while(True): # add thread
-            color_chase(ar, rgb_color, brightness, 0.01, NUM_LEDS, sm)
-            if mode != "wave":
-                break
-    if mode == "rgb":
-        print("rgb")
+        rgb_color = change_to_rgb(color)
+        globals.set_run_false()
+        time.sleep(1.5)
+        
+        set_mode(mode, rgb_color, brightness)
     
     #response = html % stateis
     writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')

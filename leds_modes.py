@@ -1,14 +1,20 @@
 import array
 import time
+import globals
 
 
-def rainbow_cycle(wait, NUM_LEDS):
-    for j in range(255):
-        for i in range(NUM_LEDS):
-            rc_index = (i * 256 // NUM_LEDS) + j
-            pixels_set(i, wheel(rc_index & 255))
-        pixels_show()
-        time.sleep(wait)
+def rainbow_cycle(wait, NUM_LEDS, ar, brightness, sm):
+    global run_core_1
+    while True:
+        if globals.run_core_1 == False:
+            break
+        for j in range(255):
+            if globals.run_core_1 == False:
+                break
+            for i in range(NUM_LEDS):
+                rc_index = (i * 256 // NUM_LEDS) + j
+                pixels_set(i, wheel(rc_index & 255), ar)
+            pixels_show(ar, brightness, NUM_LEDS, sm)
         
 
 def wheel(pos):
@@ -25,14 +31,19 @@ def wheel(pos):
     return (pos * 3, 0, 255 - pos * 3)
 
 def color_chase(ar, color, brightness, wait, NUM_LEDS, sm):
-    for i in range(NUM_LEDS):
-        pixels_set(i, color, ar)
-        time.sleep(wait)
-        pixels_show(ar, brightness, NUM_LEDS, sm )
-    for i in range(NUM_LEDS):
-        pixels_set(i, (0,0,0), ar)
-        time.sleep(wait)
-        pixels_show(ar, brightness, NUM_LEDS, sm )
+    global run_core_1
+    print("run core 1: ",globals.run_core_1)
+    while True:
+        if globals.run_core_1 == False:
+            break
+        for i in range(NUM_LEDS):
+            pixels_set(i, color, ar)
+            time.sleep(wait)
+            pixels_show(ar, brightness, NUM_LEDS, sm )
+        for i in range(NUM_LEDS):
+            pixels_set(i, (0,0,0), ar)
+            time.sleep(wait)
+            pixels_show(ar, brightness, NUM_LEDS, sm )
 
 def pixels_show(ar, brightness, NUM_LEDS, sm):
     dimmer_ar = array.array("I", [0 for _ in range(NUM_LEDS)])
